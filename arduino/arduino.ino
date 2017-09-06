@@ -60,7 +60,6 @@ void led() {
 }
 
 
-
 /*
 json_string_from_server = {
     "jsonCmd" : "read_max_value/read_average_value"
