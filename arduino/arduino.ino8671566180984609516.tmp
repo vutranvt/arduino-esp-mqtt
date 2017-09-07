@@ -4,8 +4,8 @@
 #include <SerialCommand.h>  // Thêm vào sketch thư viện Serial Command
 
 // config device command
-const char* server_arduino = "server_arduino";
-const char* esp_arduino = "esp_arduino";
+const char server_arduino = "server_arduino";
+const char esp_arduino = "esp_arduino";
 
 // config request command
 #define chip_id_request "chip_id_request"
@@ -51,8 +51,7 @@ void setup() {
     
 void loop() {
     sCmd.readSerial();
-    double data = adcRead(1000);
-    txDataServer(data);
+    
     //Bạn không cần phải thêm bất kỳ dòng code nào trong hàm loop này cả
 }
 /*
@@ -191,10 +190,12 @@ double adcRead(long sampleTime) {
         average = average + (double)(analogValue * analogValue);
         counter++;
     }
-//    temp = sqrt(average / (double)counter);
-//    Serial.println(temp);
+
+    temp = sqrt(average / (double)counter);
+    Serial.println(temp);
 
     result = sqrt(average / (double)counter) * (22 / 1024.0); // Lay gia tri trung binh
+
 
     result = result - 0.10;
 
@@ -205,6 +206,7 @@ double adcRead(long sampleTime) {
         result = result + 0.10;
     }
     result = result * 10;   // Hệ số TI
+
 
     Serial.println(result);
     return result;

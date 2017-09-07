@@ -34,13 +34,12 @@ extern "C" {
 }
 
 // config device command
-const char* server_arduino = "server_arduino";
-const char* esp_arduino = "esp_arduino";
+const char server_arduino = "server_arduino";
+const char esp_arduino = "esp_arduino";
 
 // config request command
 #define chip_id_request "chip_id_request"
 #define mac_address_request "mac_address_request"
-#define data "data"
 
 String chipIdEsp = "";
 String mac_address = "";
@@ -65,8 +64,6 @@ uint32_t chipID;
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-//StaticJsonBuffer<200> jsonBuffer;
-
 long lastMsg = 0;
 char msg[50];
 int value = 0;
@@ -86,9 +83,8 @@ void setup() {
     // sCmd.addDefaultHandler(defaultCommand);
 
     // Một số hàm trong thư viện Serial Command
-    sCmd.addCommand(server_arduino, requestResponse);   //Khi có lệnh thì thực hiện hàm "rxRequestServer"
-//    sCmd.addCommand(esp_arduino, rxRequest);        //Khi có lệnh thì thực hiện hàm "rxResponseEsp"
-//sCmd.addDefaultHandler(defaultCommand);
+    sCmd.addCommand(server_arduino, requestResponse(server_arduino));   //Khi có lệnh thì thực hiện hàm "rxRequestServer"
+    sCmd.addCommand(esp_arduino, requestResponse((char)esp_arduino));        //Khi có lệnh thì thực hiện hàm "rxResponseEsp"
 
 
 }
@@ -126,8 +122,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
         jsonStr += (char)payload[i];
     }
     Serial.println(jsonStr);
-    StaticJsonBuffer<200> jsonBuffer;
-    JsonObject& root = jsonBuffer.parseObject(jsonStr); 
     
     mySerial.print("ARDUINO");
     mySerial.print('\r');
@@ -178,9 +172,8 @@ void defaultCommand(char *command) {
     client.publish("PUBLISH_TOPIC", json);
 }
 
-void requestResponse() {
-//    Serial.println(deviceCmd);
-    Serial.println(esp_arduino);
+void requestResponse(String deviceCmd) {
+    Serial.println(deviceCmd);
     char *json = sCmd.next(); //Chỉ cần một dòng này để đọc tham số nhận đươc
     Serial.println(json);
     StaticJsonBuffer<200> jsonBuffer; //tạo Buffer json có khả năng chứa tối đa 200 ký tự
@@ -190,14 +183,10 @@ void requestResponse() {
     String response = root["response"];
 
     if(requestCmd==mac_address_request){
-        //txResponse(deviceCmd, requestCmd, mac_address);
+        txResponse(deviceCmd, requestCmd, mac_address);
     }
-    if(response==data){
+    else(response=="data"){
         client.publish("PUBLISH_TOPIC", json);
     }
-}
-
-void defaultCommand(String Command){
-  
 }
 

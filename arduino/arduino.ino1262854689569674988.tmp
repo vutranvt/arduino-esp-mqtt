@@ -4,34 +4,32 @@
 #include <SerialCommand.h>  // Thêm vào sketch thư viện Serial Command
 
 // config device command
-const char* server_arduino = "server_arduino";
-const char* esp_arduino = "esp_arduino";
+const char server_arduino = "server_arduino"
+const char esp_arduino = "esp_arduino"
 
 // config request command
 #define chip_id_request "chip_id_request"
 #define mac_address_request "mac_address_request"
 
-String chipIdEsp = "";
-String mac_address = "";
+char chipIdEsp[30] = "";
+char mac_address[30] = "";
+
 
 const byte RX = 3;          // Chân 3 được dùng làm chân RX
 const byte TX = 2;          // Chân 2 được dùng làm chân TX
 
-double ampAdc1 = 0;
-double ampAdc2 = 0;
-double ampAdc3 = 0;
+double ammAdc1 = 0;
+double ammAdc2 = 0;
+double ammAdc3 = 0;
 int counter1 = 0;
 int counter2 = 0;
 int counter3 = 0;
-
-unsigned int adc_zero = 512;
-
     
 bool CONFIG_MAX_VALUE = false;
 
 SoftwareSerial mySerial = SoftwareSerial(RX, TX);
 
-SerialCommand sCmd(mySerial); // Khai báo biến sử dụng thư viện Serial Command
+// SerialCommand sCmd(mySerial); // Khai báo biến sử dụng thư viện Serial Command
 
 // int red = 4, blue = 5; // led đỏ đối vô digital 4, led xanh đối vô digital 5
 
@@ -42,8 +40,8 @@ void setup() {
     mySerial.begin(115200);
 
     // Một số hàm trong thư viện Serial Command
-    sCmd.addCommand(server_arduino, rxRequestServer);   //Khi có lệnh thì thực hiện hàm "configReadValue"
-    sCmd.addCommand(esp_arduino, rxResponseEsp);  //Khi có lệnh thì thực hiện hàm "rxResponseEsp"
+    sCmd.addCommand(server_arduino, rxRequest(server_arduino));   //Khi có lệnh thì thực hiện hàm "configReadValue"
+    sCmd.addCommand(esp_arduino, rxResponseEsp);           //Khi có lệnh thì thực hiện hàm "rxResponseEsp"
 
     delay(3000);
     txRequestEsp(mac_address_request);
@@ -51,26 +49,80 @@ void setup() {
     
 void loop() {
     sCmd.readSerial();
-    double data = adcRead(1000);
-    txDataServer(data);
     //Bạn không cần phải thêm bất kỳ dòng code nào trong hàm loop này cả
 }
+
+// hàm led_red sẽ được thực thi khi gửi hàm LED_RED
+void led() {
+    Serial.println("LED");
+    char *json = sCmd.next(); //Chỉ cần một dòng này để đọc tham số nhận đươc
+    Serial.println(json);
+    StaticJsonBuffer<200> jsonBuffer; //tạo Buffer json có khả năng chứa tối đa 200 ký tự
+    JsonObject& root = jsonBuffer.parseObject(json);//đặt một biến root mang kiểu json
+
+    int redStatus = root["led"][0];//json -> tham số root --> phần tử thứ 0. Đừng lo lắng nếu bạn không có phần tử này, không có bị lỗi đâu!
+    int blueStatus = root["led"][1];//json -> tham số root --> phần tử thứ 0. Đừng lo lắng nếu bạn không có phần tử này, không có bị lỗi đâu!
+
+
+    //kiểm thử giá trị
+    Serial.print(F("redStatus "));
+    Serial.println(redStatus);
+    Serial.print(F("blueStatus "));
+    Serial.println(blueStatus);
+
+    //xuất ra màn hình
+    digitalWrite(red, redStatus);
+    digitalWrite(blue, blueStatus);
+}
+
+
+/*
+    json_string_from_server = {
+    "jsonCmd" : "read_max_value/read_average_value"
+    }
+*/
+void configReadValue() {
+    char *json = sCmd.next(); //Chỉ cần một dòng này để đọc tham số nhận đươc
+    Serial.println(json);
+    StaticJsonBuffer<200> jsonBuffer; //tạo Buffer json có khả năng chứa tối đa 200 ký tự
+    JsonObject& root = jsonBuffer.parseObject(json);//đặt một biến root mang kiểu json
+
+    string cmd = root["jsonCmd"];
+
+    if (strcmp(cmd, "read_max_value") == 0) {
+        CONFIG_MAX_VALUE = true;
+    }
+    if (strcmp(cmd, "read_average_value")) {
+        CONFIG_MAX_VALUE = false;
+    }
+}
+
+void jsonStringEncoder(double data1, double data2, double data3) {
+    StaticJsonBuffer<200> jsonBuffer;
+    JsonObject& root = jsonBuffer.createObject();
+    root["adc1"] = data1;
+    root["adc2"] = data2;
+    root["adc3"] = data3;
+}
+
+
+
 /*
 json_data = {
         "response" : "data"
         "data" : "..."
     }
 */
-void txDataServer(double data){
+void txDataServer(){
     StaticJsonBuffer<200> jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
 
     root["response"] = "data";
-    root["data"] = data;
+    root["data"] = "123";
 
     mySerial.print(server_arduino);
     mySerial.print('\r');
-    root.printTo(mySerial);
+    mySerial.print(root);
     mySerial.print('\r');  
 }
 
@@ -118,7 +170,7 @@ void txRequestEsp(String requestCmd){
 
     mySerial.print(esp_arduino);
     mySerial.print('\r');
-    root.printTo(mySerial);
+    mySerial.print(root);
     mySerial.print('\r');    
 }
 void rxResponseEsp(){
@@ -144,7 +196,7 @@ arduino-server-request-response = {
     "data" : "...."
 }
 */
-void rxRequestServer(String deviceCmd){
+void rxRequest(String deviceCmd){
     Serial.println(server_arduino);
     char *json = sCmd.next(); //Chỉ cần một dòng này để đọc tham số nhận đươc
     Serial.println(json);
@@ -168,44 +220,6 @@ void txResponse(String deviceCmd, String requestCmd, String dataResponse){
 
     mySerial.print(deviceCmd);
     mySerial.print('\r');
-    root.printTo(mySerial);
+    mySerial.print(root);
     mySerial.print('\r'); 
-}
-
-double adcRead(long sampleTime) {
-
-    double result = 0;
-    double temp = 0;
-    double average = 0;
-
-    unsigned long counter = 0;
-
-    long analogValue;              //value read from the sensor
-
-    unsigned long startTime = millis();
-
-    while ((unsigned long)(millis() - startTime) < sampleTime) //sample for 1 Sec
-    {
-        analogValue = analogRead(A0) - adc_zero;
-        Serial.println(analogValue);
-        average = average + (double)(analogValue * analogValue);
-        counter++;
-    }
-//    temp = sqrt(average / (double)counter);
-//    Serial.println(temp);
-
-    result = sqrt(average / (double)counter) * (22 / 1024.0); // Lay gia tri trung binh
-
-    result = result - 0.10;
-
-    if (result < 0.20)
-    {
-        result = 0;
-    } else {
-        result = result + 0.10;
-    }
-    result = result * 10;   // Hệ số TI
-
-    Serial.println(result);
-    return result;
 }
