@@ -52,12 +52,17 @@ SoftwareSerial mySerial(RX, TX, false, 256);
 SerialCommand sCmd(mySerial); // Khai báo biến sử dụng thư viện Serial Command
 
 // Update these with values suitable for your network.
-const char* SSID = "Phong Ky Thuat";
-const char* PASSWORD = "123456789";
-const char* MQTT_SERVER = "broker.mqtt-dashboard.com";
+const char* WIFI_SSID = "Phong Ky Thuat";
+const char* WIFI_PASS = "123456789";
 
-const char* PUBLISH_TOPIC = "outTopic";
-const char* SUBSCRIBE_TOPIC = "inTopic";
+const char* MQTT_ID = "ESP8266";
+const char* MQTT_USER = "esp32";
+const char* MQTT_PASS = "mtt@23377";
+const char* MQTT_SERVER = "113.161.21.15";
+const char* MQTT_PORT = "1883";
+
+const char* TOPIC_PUBLISH = "outTopic";
+const char* TOPIC_SUBSCRIBE = "inTopic";
 
 const char* get_chipID = "get_chipID";
 uint32_t chipID;
@@ -99,9 +104,9 @@ void setup_wifi() {
     // We start by connecting to a WiFi network
     Serial.println();
     Serial.print("Connecting to ");
-    Serial.println(SSID);
+    Serial.println(WIFI_SSID);
 
-    WiFi.begin(SSID, PASSWORD);
+    WiFi.begin(WIFI_SSID, WIFI_PASS);
 
     while (WiFi.status() != WL_CONNECTED) {
         delay(500);
@@ -131,7 +136,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
     
     mySerial.print("ARDUINO");
     mySerial.print('\r');
-    mySerial.print(jsonStr);
+//     mySerial.print(jsonStr);
+    root.printTo(mySerial);  
     mySerial.print('\r');
 
 }
@@ -141,12 +147,12 @@ void reconnect() {
     while (!client.connected()) {
         Serial.print("Attempting MQTT connection...");
         // Attempt to connect
-        if (client.connect("ESP8266Client")) {
+        if (client.connect("ESP8266Client", "esp32", "mtt@23377")) {
             Serial.println("connected");
             // Once connected, publish an announcement...
-            client.publish(PUBLISH_TOPIC, "hello world");
+            client.publish(TOPIC_PUBLISH, "hello world");
             // ... and resubscribe
-            client.subscribe(SUBSCRIBE_TOPIC);
+            client.subscribe(TOPIC_SUBSCRIBE);
         } else {
             Serial.print("failed, rc=");
             Serial.print(client.state());
@@ -175,7 +181,7 @@ void loop() {
 
 void defaultCommand(char *command) {
     char *json = sCmd.next();
-    client.publish("PUBLISH_TOPIC", json);
+    client.publish(TOPIC_PUBLISH, json);
 }
 
 void requestResponse() {
@@ -193,7 +199,7 @@ void requestResponse() {
         //txResponse(deviceCmd, requestCmd, mac_address);
     }
     if(response==data){
-        client.publish("PUBLISH_TOPIC", json);
+        client.publish(TOPIC_PUBLISH, json);
     }
 }
 

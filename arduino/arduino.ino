@@ -51,8 +51,13 @@ void setup() {
     
 void loop() {
     sCmd.readSerial();
-    double data = adcRead(1000);
-    txDataServer(data);
+    //double data = adcRead(1000);
+    unsigned int txData = analogRead(A0);
+    Serial.println(txData);
+    
+    txDataServer((double)txData);
+
+    delay(1000);
     //Bạn không cần phải thêm bất kỳ dòng code nào trong hàm loop này cả
 }
 /*
@@ -153,6 +158,8 @@ void rxRequestServer(String deviceCmd){
 
     String requestCmd = root["request"];
 
+    root.printTo(Serial);
+    
     if(requestCmd==chip_id_request){
         txResponse(deviceCmd, requestCmd, chipIdEsp);
     }
